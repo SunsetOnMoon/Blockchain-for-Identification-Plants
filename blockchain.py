@@ -1,6 +1,8 @@
 #from Modules import merkle_tree
 from time import time
 import hashlib
+import json
+from typing import Any, Callable, Iterable
 
 class Blockchain:
     def __init__(self) -> None:
@@ -16,8 +18,8 @@ class Blockchain:
             'timestamp': time(),
             'prev_hash': previous_hash or self.hash(self.chain[-1]),
             'merkle_root': self.merkle_root(self.current_transactions),
-            'transactions': self.current_transactions
-            #'proof': self.proof - добавить, когда появятся датчики
+            'transactions': self.current_transactions,
+            'proof': proof #- добавить, когда появятся датчики
         }
 
         self.chain.append(block)
@@ -49,7 +51,14 @@ class Blockchain:
 
     @staticmethod
     def hash(block):
-        pass
+        str_block = json.dumps(block, sort_keys=True).encode()
+        return hashlib.sha256(str_block).hexdigest()
+
+    @staticmethod
+    def get_hash(data: Any):
+        if isinstance(data, Iterable):
+            data = ''.join(data)
+        return hashlib.sha256(data.encode('utf-8')).hexdigest()
 
     @staticmethod
     def merkle_root(transactions):
@@ -57,9 +66,15 @@ class Blockchain:
         while len(merkle_hashes) != 1:
             if (len(transactions) % 2 != 0): #убираем нечётное количество транзакций
                 transactions.append(transactions[-1])
-            merkle_hashes = [hashlib.sha256((merkle_hashes[i] + merkle_hashes[i + 1]).encode('utf-8')).hexdigest() for i in range(0, len(merkle_hashes), 2)]
-            merkle_hashes = merkle_hashes[::2]
+            merkle_hashes = [Blockchain.get_hash(merkle_hashes[i:i+2]) for i in range(0, len(merkle_hashes), 2)]
         return merkle_hashes[0]
+
+
+
+    @property
+    def last_block(self):
+        return self.chain[-1]    
         
 
-
+    def proof_of_work(self, last_block): # return proof (реализовать с появлением датчиков)
+        pass
